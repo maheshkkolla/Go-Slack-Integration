@@ -1,0 +1,16 @@
+{
+  "name": "Go_Slack",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node index.js",
+    "tests": "node_modules/mocha/bin/mocha mingleSlackTests.js"
+  },
+  "dependencies": {
+    "xml2js": "*",
+    "slack-node": "*",
+    "mocha": "*",
+    "domin": "*"
+  } 
+  
+}

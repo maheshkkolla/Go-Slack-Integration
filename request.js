@@ -29,7 +29,7 @@ var getOptionsFrom = function(go) {
 	return {
 		host: go.host,
 		path: go.path,
-		method: 'GET',
+		method: 'GET'
 	};
 }
 
