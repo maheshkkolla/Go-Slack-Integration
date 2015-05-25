@@ -95,7 +95,7 @@ var handleGoData = function(goData, callback) {
 }
 
 var run = function() {
-	console.log("Requesting Go ...");
+	console.log("["+new Date()+"]\tRequesting Go ...");
 	request.requestGo(data.go, function(result) {
 		handleGoData(result, function(log, message) {
 			log && console.log("["+new Date()+"]\t"+log);
