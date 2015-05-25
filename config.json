@@ -1,0 +1,11 @@
+{
+	"go" : {
+		"host" : "GO HOST",
+		"path" : "GO PATH"
+	},
+	"slack" : {
+		"webhook": "SLACK WEB HOOK",
+		"channel": "SLACK CHANNEL",
+		"userName": "SLACK USER NAME"
+	}	
+}
