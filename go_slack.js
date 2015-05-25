@@ -24,26 +24,19 @@ var isFailingBuild = function(build) {
 }
 
 var hasBuildChanged = function(build) {
-	return(build.lastBuildStatus != buildStatus[build.name]);
-}
-
-var getMessageForBuild = function(build) {
-	var message = build.name+"\t *"+build.lastBuildStatus+"*\n";
-	message += "Build label: "+build.lastBuildLabel+"\n";
-	message += build.webUrl; 
-	return message;
+	return(build.lastBuildStatus != buildStatus[getFirstNameOf(build)]);
 }
 
 messages['Failure'] = function(build) {
 	var breaker = "Someone";
 	if(build.messages) breaker = build.messages[0].message[0]['$'].text;
-	var message = "*"+breaker+"* broke *"+build['$'].name+"*. I hope "+breaker+" is looking into it.\n";
+	var message = "*"+breaker+"* broke *"+getFirstNameOf(build['$'])+"*. I hope "+breaker+" is looking into it.\n";
 	message += build['$'].webUrl;
 	return message;
 }
 
 messages['Success'] = function(build) {
-	var message = "I am glad that someone fixed *"+build['$'].name+"*";
+	var message = "I am glad that someone fixed *"+getFirstNameOf(build['$'])+"*\n";
 	message += build['$'].webUrl;
 	return message;
 }
@@ -54,11 +47,12 @@ var getLogForBuild = function(build) {
 }
 
 var updateLastBuildStatusFor = function(build) {
-	buildStatus[build.name] = build.lastBuildStatus;
+	buildStatus[getFirstNameOf(build)] = build.lastBuildStatus;
 	fs.writeFileSync("./lastBuildStatus.json", JSON.stringify(buildStatus));
 }
 
-var handleTheBuild = function(build, callback) {
+var handleTheBuild = function(buildGroup, callback) {
+	var build = buildGroup[0];
 	if(hasBuildChanged(build['$'])) {
 		var message = messages[build['$'].lastBuildStatus](build);
 		var log = getLogForBuild(build['$']);
@@ -67,11 +61,37 @@ var handleTheBuild = function(build, callback) {
 	}
 }
 
+var getFirstNameOf = function(build) {
+	return build.name.split('::')[0];
+}
+
+var combineTheBildsOfSameName = function(builds) {
+	var combinedBuilds = {};
+	builds.forEach(function(build) {
+		if(combinedBuilds[getFirstNameOf(build['$'])]){
+			combinedBuilds[getFirstNameOf(build['$'])].push(build);
+		}else {
+			combinedBuilds[getFirstNameOf(build['$'])] = [];
+			combinedBuilds[getFirstNameOf(build['$'])].push(build);
+		}
+	});
+	return combinedBuilds;
+}
+
+var sortByName = function(buildGroup) {
+	return buildGroup.sort(function(pre, cur) {
+		return(pre['$'].name - cur['$'].name);
+	});
+}
+
 var handleGoData = function(goData, callback) {
 	var builds = goData.Projects.Project;
-	builds.forEach(function(build) {
-		handleTheBuild(build, callback);
-	});	
+	builds = combineTheBildsOfSameName(builds);
+	var buildNames = Object.keys(builds);
+	buildNames.forEach(function(buildName){
+		buildGroup = sortByName(builds[buildName]);
+		handleTheBuild(buildGroup, callback);
+	});
 }
 
 var run = function() {
