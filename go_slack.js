@@ -29,15 +29,13 @@ var hasBuildChanged = function(build) {
 
 messages['Failure'] = function(build) {
 	var breaker = "Someone";
-	if(build.messages) breaker = build.messages[0].message[0]['$'].text;
-	var message = "*"+breaker+"* broke *"+getFirstNameOf(build['$'])+"*. I hope "+breaker+" is looking into it.\n";
-	message += build['$'].webUrl;
+	if(build.messages) breaker = build.messages[0].message[0]['$'].text.split("<")[0];
+	var message = "*"+breaker+"* broke <"+build['$'].webUrl+"|"+getFirstNameOf(build['$'])+">. I hope "+breaker+" is looking into it.\n";
 	return message;
 }
 
 messages['Success'] = function(build) {
-	var message = "I am glad that someone fixed *"+getFirstNameOf(build['$'])+"*\n";
-	message += build['$'].webUrl;
+	var message = "I am glad that someone fixed <"+build['$'].webUrl+"|"+getFirstNameOf(build['$'])+">\n";
 	return message;
 }
 
