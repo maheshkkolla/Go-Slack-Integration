@@ -63,7 +63,7 @@ var handleTheBuild = function(buildGroup, callback) {
 		var message = messages[build['$'].lastBuildStatus](build);
 		var log = getLogForBuild(build['$']);
 		callback(log, message);
-		updateLastBuildStatusFor(build['$']);
+		updateLastBuildStatusFor(build);
 	}
 }
 
