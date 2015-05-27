@@ -1,5 +1,5 @@
-var ob = {};
-module.exports = ob;
+var request = {};
+module.exports = request;
 var http = require('http');
 var parser = require('xml2js').Parser();
 
@@ -33,7 +33,7 @@ var getOptionsFrom = function(go) {
 	};
 }
 
-ob.requestGo = function(go,callback) {
+request.requestGo = function(go,callback) {
 	var options = getOptionsFrom(go);
 	var httpRequest = getHttpRequest(options, callback);
 	httpRequest.end();

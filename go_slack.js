@@ -1,10 +1,17 @@
 var request = require('./request.js');
 var fs = require('fs');
-var data = JSON.parse(fs.readFileSync("./config.json"));
 var Slack = require('slack-node');
-var buildStatus = JSON.parse(fs.readFileSync("./lastBuildStatus.json"));
 var domain = require('domain').create();
+var data = JSON.parse(fs.readFileSync("./config.json"));
+var buildStatus = JSON.parse(fs.readFileSync("./lastBuildStatus.json"));
+var FAILURE_MESSAGE = "*@USER@* broke < @URL@ | @BUILD@ >. I hope @USER@ looking into it.\n";
+var SUCCESS_MESSAGE = "I am glad that someone fixed < @URL@ | @BUILD@ >.\n";
 var messages = {};
+
+
+var dateStamp = function() {
+	return("["+new Date()+"]\t");
+}
 
 var sendToSlack = function(message, slackData) {
 	var slack = new Slack();
@@ -14,28 +21,29 @@ var sendToSlack = function(message, slackData) {
 		username: slackData.userName,
 		text: message
 	} ,function(err,response){
-		err && console.log("["+new Date()+"]\tError at sending message to slack:",err);
-		console.log("["+new Date()+"]\tResponse from slack:",response.status);
+		err && console.log(dateStamp()+"Error at sending message to slack:",err);
+		console.log(dateStamp()+"Response from slack:",response.status);
 	});
 }
 
-var isFailingBuild = function(build) {
-	return (build.lastBuildStatus == 'Failure');	
-}
-
 var hasBuildChanged = function(build) {
-	return(build.lastBuildStatus != buildStatus[getFirstNameOf(build)]);
+	return(build['$'].lastBuildStatus != buildStatus[getFirstNameOf(build)]);
 }
 
 messages['Failure'] = function(build) {
 	var breaker = "Someone";
-	if(build.messages) breaker = build.messages[0].message[0]['$'].text.split("<")[0];
-	var message = "*"+breaker+"* broke <"+build['$'].webUrl+"|"+getFirstNameOf(build['$'])+">. I hope "+breaker+" is looking into it.\n";
+	(build.messages) && (breaker = build.messages[0].message[0]['$'].text.split("<")[0]);
+	var message = FAILURE_MESSAGE;
+	message = message.replace(/@USER@/g,breaker);
+	message = message.replace(/@URL@/g,build['$'].webUrl);
+	message = message.replace(/@BUILD@/g,getFirstNameOf(build));
 	return message;
 }
 
 messages['Success'] = function(build) {
-	var message = "I am glad that someone fixed <"+build['$'].webUrl+"|"+getFirstNameOf(build['$'])+">\n";
+	var message = SUCCESS_MESSAGE;
+	message = message.replace(/@URL@/g,build['$'].webUrl);
+	message = message.replace(/@BUILD@/g,getFirstNameOf(build));
 	return message;
 }
 
@@ -45,13 +53,13 @@ var getLogForBuild = function(build) {
 }
 
 var updateLastBuildStatusFor = function(build) {
-	buildStatus[getFirstNameOf(build)] = build.lastBuildStatus;
+	buildStatus[getFirstNameOf(build)] = build['$'].lastBuildStatus;
 	fs.writeFileSync("./lastBuildStatus.json", JSON.stringify(buildStatus));
 }
 
 var handleTheBuild = function(buildGroup, callback) {
 	var build = buildGroup[0];
-	if(hasBuildChanged(build['$'])) {
+	if(hasBuildChanged(build)) {
 		var message = messages[build['$'].lastBuildStatus](build);
 		var log = getLogForBuild(build['$']);
 		callback(log, message);
@@ -60,17 +68,18 @@ var handleTheBuild = function(buildGroup, callback) {
 }
 
 var getFirstNameOf = function(build) {
-	return build.name.split('::')[0];
+	return build['$'].name.split('::')[0];
 }
 
-var combineTheBildsOfSameName = function(builds) {
+var combineTheBuildsOfSameName = function(builds) {
 	var combinedBuilds = {};
 	builds.forEach(function(build) {
-		if(combinedBuilds[getFirstNameOf(build['$'])]){
-			combinedBuilds[getFirstNameOf(build['$'])].push(build);
-		}else {
-			combinedBuilds[getFirstNameOf(build['$'])] = [];
-			combinedBuilds[getFirstNameOf(build['$'])].push(build);
+		var buildName = getFirstNameOf(build);
+		if(combinedBuilds[buildName])
+			combinedBuilds[buildName].push(build);
+		else {
+			combinedBuilds[buildName] = [];
+			combinedBuilds[buildName].push(build);
 		}
 	});
 	return combinedBuilds;
@@ -84,7 +93,7 @@ var sortByName = function(buildGroup) {
 
 var handleGoData = function(goData, callback) {
 	var builds = goData.Projects.Project;
-	builds = combineTheBildsOfSameName(builds);
+	builds = combineTheBuildsOfSameName(builds);
 	var buildNames = Object.keys(builds);
 	buildNames.forEach(function(buildName){
 		buildGroup = sortByName(builds[buildName]);
@@ -93,10 +102,10 @@ var handleGoData = function(goData, callback) {
 }
 
 var run = function() {
-	console.log("["+new Date()+"]\tRequesting Go ...");
+	console.log(dateStamp()+"Requesting Go ...");
 	request.requestGo(data.go, function(result) {
 		handleGoData(result, function(log, message) {
-			log && console.log("["+new Date()+"]\t"+log);
+			log && console.log(dateStamp()+""+log);
 			message && sendToSlack(message,data.slack);
 		});
 	});
@@ -104,8 +113,8 @@ var run = function() {
 }
 
 domain.on('error', function(error) {
-	console.log("["+new Date()+"]\t***** Error occurred: *****\n"+error);
-	console.log("\n##### Program didn,t stop, It is Running #####\n")
+	console.log(dateStamp()+"***** Error occurred: *****\n"+error);
+	console.log("\n##### Program didn't stop, It is Running #####\n")
 });
 
 domain.run(run);
