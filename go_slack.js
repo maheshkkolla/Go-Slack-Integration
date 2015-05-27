@@ -4,8 +4,8 @@ var Slack = require('slack-node');
 var domain = require('domain').create();
 var data = JSON.parse(fs.readFileSync("./config.json"));
 var buildStatus = JSON.parse(fs.readFileSync("./lastBuildStatus.json"));
-var FAILURE_MESSAGE = "*@USER@* broke < @URL@ | @BUILD@ >. I hope @USER@ looking into it.\n";
-var SUCCESS_MESSAGE = "I am glad that someone fixed < @URL@ | @BUILD@ >.\n";
+var FAILURE_MESSAGE = "*@USER@* broke <@URL@|@BUILD@>. I hope @USER@ looking into it.\n";
+var SUCCESS_MESSAGE = "I am glad that someone fixed <@URL@|@BUILD@>.\n";
 var messages = {};
 
 
